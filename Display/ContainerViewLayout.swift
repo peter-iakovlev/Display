@@ -63,7 +63,7 @@ public struct ContainerViewLayout: Equatable {
             insets.top += statusBarHeight
         }
         if let inputHeight = self.inputHeight , options.contains(.input) {
-            insets.bottom = max(inputHeight, insets.bottom)
+            insets.bottom += inputHeight
         }
         return insets
     }
