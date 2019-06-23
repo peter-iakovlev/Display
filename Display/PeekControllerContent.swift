@@ -2,7 +2,7 @@ import Foundation
 import AsyncDisplayKit
 
 public enum PeekControllerContentPresentation {
-    case contained
+    case contained(userInterfaceEnabled: Bool)
     case freeform
 }
 

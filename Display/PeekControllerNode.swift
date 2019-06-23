@@ -10,6 +10,7 @@ final class PeekControllerNode: ViewControllerTracingNode {
     private let dimNode: ASDisplayNode
     private let containerBackgroundNode: ASImageNode
     private let containerNode: ASDisplayNode
+    private let gestureView: UIView
     
     private var validLayout: ContainerViewLayout?
     private var containerOffset: CGFloat = 0.0
@@ -23,6 +24,7 @@ final class PeekControllerNode: ViewControllerTracingNode {
     
     private var menuNode: PeekControllerMenuNode?
     private var displayingMenu = false
+    private var previewingMenu = false
     
     private var hapticFeedback: HapticFeedback?
     
@@ -32,6 +34,7 @@ final class PeekControllerNode: ViewControllerTracingNode {
         
         self.dimNode = ASDisplayNode()
         self.blurView = UIVisualEffectView(effect: UIBlurEffect(style: theme.isDark ? .dark : .light))
+        self.gestureView = UIView()
         self.blurView.isUserInteractionEnabled = false
         
         switch content.menuActivation() {
@@ -66,17 +69,27 @@ final class PeekControllerNode: ViewControllerTracingNode {
         
         super.init()
         
-        if content.presentation() == .freeform {
-            self.containerNode.isUserInteractionEnabled = false
-        } else {
-            self.containerNode.clipsToBounds = true
-            self.containerNode.cornerRadius = 16.0
-        }
-        
         self.addSubnode(self.dimNode)
         self.view.addSubview(self.blurView)
         self.containerNode.addSubnode(self.contentNode)
         self.addSubnode(self.containerNode)
+
+        switch self.content.presentation() {
+        case let .contained(userInterfaceEnabled):
+            self.containerNode.isUserInteractionEnabled = userInterfaceEnabled
+            self.containerNode.clipsToBounds = true
+            self.containerNode.cornerRadius = 16.0
+
+            // Cause AVSampleBufferDisplayLayer cause a bug with no gesture passing when it's contentNode
+            if !userInterfaceEnabled {
+                self.gestureView.backgroundColor = UIColor.white
+                // Not enought time to debug :D
+                self.gestureView.alpha = 0.01
+                self.view.addSubview(self.gestureView)
+            }
+        case .freeform:
+            self.containerNode.isUserInteractionEnabled = false
+        }
         
         if let topAccessoryNode = self.topAccessoryNode {
             self.addSubnode(topAccessoryNode)
@@ -102,14 +115,16 @@ final class PeekControllerNode: ViewControllerTracingNode {
         
         self.dimNode.view.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(self.dimNodeTap(_:))))
         self.view.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(self.panGesture(_:))))
+        self.gestureView.addGestureRecognizer(UIPanGestureRecognizer(target: self, action: #selector(self.panGesture(_:))))
     }
-    
+
     func containerLayoutUpdated(_ layout: ContainerViewLayout, transition: ContainedViewLayoutTransition) {
         self.validLayout = layout
         
         transition.updateFrame(node: self.dimNode, frame: CGRect(origin: CGPoint(), size: layout.size))
         transition.updateFrame(view: self.blurView, frame: CGRect(origin: CGPoint(), size: layout.size))
-        
+        transition.updateFrame(view: self.gestureView, frame: CGRect(origin: CGPoint(), size: layout.size))
+
         var layoutInsets = layout.insets(options: [])
         let containerWidth = horizontalContainerFillingSizeForLayout(layout: layout, sideInset: layout.safeInsets.left)
        
@@ -169,12 +184,12 @@ final class PeekControllerNode: ViewControllerTracingNode {
             let accessorySize = topAccessoryNode.frame.size
             let accessoryFrame = CGRect(origin: CGPoint(x: floorToScreenPixels(containerFrame.midX - accessorySize.width / 2.0), y: containerFrame.minY - accessorySize.height - 16.0), size: accessorySize)
             transition.updateFrame(node: topAccessoryNode, frame: accessoryFrame)
-            transition.updateAlpha(node: topAccessoryNode, alpha: self.displayingMenu ? 0.0 : 1.0)
+            transition.updateAlpha(node: topAccessoryNode, alpha: self.previewingMenu ? 0.0 : 1.0)
         }
         
         if let menuNode = self.menuNode, let menuSize = menuSize {
             let menuY: CGFloat
-            if self.displayingMenu {
+            if self.previewingMenu {
                 menuY = max(containerFrame.maxY + 14.0, layout.size.height - layoutInsets.bottom - 14.0 - menuSize.height)
             } else {
                 menuY = layout.size.height + 14.0
@@ -266,11 +281,7 @@ final class PeekControllerNode: ViewControllerTracingNode {
             case .cancelled, .ended:
                 if let _ = self.panInitialContainerOffset {
                     self.panInitialContainerOffset = nil
-                    if self.containerOffset < 0.0 {
-                        self.activateMenu()
-                    } else {
-                        self.requestDismiss()
-                    }
+                    self.endDraggingWithVelocity(recognizer.velocity(in: self.view).y)
                 }
             default:
                 break
@@ -279,13 +290,14 @@ final class PeekControllerNode: ViewControllerTracingNode {
     
     func applyDraggingOffset(_ offset: CGFloat) {
         self.containerOffset = offset
-        if self.containerOffset < -25.0 {
-            //self.displayingMenu = true
+        let value: CGFloat = self.displayingMenu ? 38 : -38
+        if self.containerOffset < value {
+            self.previewingMenu = true
         } else {
-            //self.displayingMenu = false
+            self.previewingMenu = false
         }
         if let layout = self.validLayout {
-            self.containerLayoutUpdated(layout, transition: .immediate)
+            self.containerLayoutUpdated(layout, transition: .animated(duration: 0.3, curve: .spring))
         }
     }
     
@@ -295,15 +307,18 @@ final class PeekControllerNode: ViewControllerTracingNode {
         }
         if let layout = self.validLayout {
             self.displayingMenu = true
+            self.previewingMenu = true
             self.containerOffset = 0.0
             self.containerLayoutUpdated(layout, transition: .animated(duration: 0.18, curve: .spring))
         }
     }
     
     func endDraggingWithVelocity(_ velocity: CGFloat) {
-        if let _ = self.menuNode, velocity < -600.0 || self.containerOffset < -38.0 {
+        let value: CGFloat = self.displayingMenu ? 38 : -38
+        if let _ = self.menuNode, velocity < -600.0 || self.containerOffset < value {
             if let layout = self.validLayout {
                 self.displayingMenu = true
+                self.previewingMenu = true
                 self.containerOffset = 0.0
                 self.containerLayoutUpdated(layout, transition: .animated(duration: 0.18, curve: .spring))
             }
