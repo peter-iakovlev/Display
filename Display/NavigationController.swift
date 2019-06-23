@@ -420,7 +420,8 @@ open class NavigationController: UINavigationController, ContainableController, 
                 
                 if let _ = previousControllers.index(where: { $0.controller === record.controller }) {
                     //previousControllers[index].transition = .appearance
-                    let navigationTransitionCoordinator = NavigationTransitionCoordinator(transition: .Pop, container: self.controllerView.containerView, topView: previousController.view, topNavigationBar: (previousController as? ViewController)?.navigationBar, bottomView: record.controller.view, bottomNavigationBar: (record.controller as? ViewController)?.navigationBar)
+                    let transitionType: NavigationTransition = .Pop
+                    let navigationTransitionCoordinator = NavigationTransitionCoordinator(transition: transitionType, container: self.controllerView.containerView, topView: previousController.view, topNavigationBar: (previousController as? ViewController)?.navigationBar, bottomView: record.controller.view, bottomNavigationBar: (record.controller as? ViewController)?.navigationBar, alongsideTransition: (record.controller as? ViewController)?.navigationAlongsideTransition(type: transitionType))
                     self.navigationTransitionCoordinator = navigationTransitionCoordinator
                     
                     self.controllerView.inTransition = true
@@ -684,7 +685,8 @@ open class NavigationController: UINavigationController, ContainableController, 
                         bottomController.displayNode.recursivelyEnsureDisplaySynchronously(true)
                     }
                     
-                    let navigationTransitionCoordinator = NavigationTransitionCoordinator(transition: .Pop, container: self.controllerView.containerView, topView: topView, topNavigationBar: (topController as? ViewController)?.navigationBar, bottomView: bottomView, bottomNavigationBar: (bottomController as? ViewController)?.navigationBar)
+                    let transitionType: NavigationTransition = .Pop
+                    let navigationTransitionCoordinator = NavigationTransitionCoordinator(transition: transitionType, container: self.controllerView.containerView, topView: topView, topNavigationBar: (topController as? ViewController)?.navigationBar, bottomView: bottomView, bottomNavigationBar: (bottomController as? ViewController)?.navigationBar, alongsideTransition: (bottomController as? ViewController)?.navigationAlongsideTransition(type: transitionType))
                     self.navigationTransitionCoordinator = navigationTransitionCoordinator
                 }
             case UIGestureRecognizerState.changed:

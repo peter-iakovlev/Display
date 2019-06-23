@@ -134,6 +134,10 @@ open class TabBarController: ViewController {
         return self.tabBarControllerNode.tabBarNode.sourceNodesForController(at: index)
     }
     
+    override open func navigationAlongsideTransition(type: NavigationTransition) -> ((CGFloat) -> ())? {
+        return currentController?.navigationAlongsideTransition(type: type)
+    }
+    
     override open func loadDisplayNode() {
         self.displayNode = TabBarControllerNode(theme: self.theme, navigationBar: self.navigationBar, itemSelected: { [weak self] index, longTap, itemNodes in
             if let strongSelf = self {

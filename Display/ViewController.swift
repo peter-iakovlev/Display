@@ -186,6 +186,10 @@ open class ViewControllerPresentationArguments {
         }
     }
     
+    open func navigationAlongsideTransition(type: NavigationTransition) -> ((CGFloat) -> ())? {
+        return nil
+    }
+    
     private let _ready = Promise<Bool>(true)
     open var ready: Promise<Bool> {
         return self._ready

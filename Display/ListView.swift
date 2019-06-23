@@ -3666,6 +3666,9 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
         self.highlightedItemIndex = nil
     }
     
+    open func updateHiglightPercent(_ percent: CGFloat) {
+    }
+    
     public func updateNodeHighlightsAnimated(_ animated: Bool) {
         let transition: ContainedViewLayoutTransition = animated ? .animated(duration: 0.35, curve: .spring) : .immediate
         self.updateOverlayHighlight(transition: transition)
