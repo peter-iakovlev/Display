@@ -1,6 +1,6 @@
 import UIKit
 
-enum NavigationTransition {
+public enum NavigationTransition {
     case Push
     case Pop
 }
@@ -14,15 +14,8 @@ private func generateShadow() -> UIImage? {
 private let shadowImage = generateShadow()
 
 class NavigationTransitionCoordinator {
-    private var _progress: CGFloat = 0.0
-    var progress: CGFloat {
-        get {
-            return self._progress
-        }
-        set(value) {
-            self._progress = value
-            self.updateProgress()
-        }
+    var progress: CGFloat = 0 {
+        didSet { updateProgress() }
     }
     
     private let container: UIView
@@ -39,9 +32,11 @@ class NavigationTransitionCoordinator {
     
     private(set) var animatingCompletion = false
     private var currentCompletion: (() -> Void)?
+    private let alongsideTransition: ((CGFloat) -> ())?
     
-    init(transition: NavigationTransition, container: UIView, topView: UIView, topNavigationBar: NavigationBar?, bottomView: UIView, bottomNavigationBar: NavigationBar?) {
+    init(transition: NavigationTransition, container: UIView, topView: UIView, topNavigationBar: NavigationBar?, bottomView: UIView, bottomNavigationBar: NavigationBar?, alongsideTransition: ((CGFloat) ->())? = nil) {
         self.transition = transition
+        self.alongsideTransition = alongsideTransition
         self.container = container
         self.topView = topView
         switch transition {
@@ -86,6 +81,8 @@ class NavigationTransitionCoordinator {
     }
     
     func updateProgress() {
+        alongsideTransition?(progress)
+        
         let position: CGFloat
         switch self.transition {
             case .Push:

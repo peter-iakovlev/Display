@@ -522,6 +522,10 @@ open class ListViewItemNode: ASDisplayNode {
     open func setHighlighted(_ highlighted: Bool, at point: CGPoint, animated: Bool) {
     }
     
+    open func setHighlightedPercent(_ percent: CGFloat) -> Bool {
+        return false
+    }
+    
     open func isReorderable(at point: CGPoint) -> Bool {
         return false
     }
