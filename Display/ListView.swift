@@ -3563,6 +3563,14 @@ open class ListView: ASDisplayNode, UIScrollViewAccessibilityDelegate, UIGesture
         
         self.checkItemReordering()
     }
+
+    public func dismissAllRevealOptions() {
+        for i in 0 ..< self.itemNodes.count {
+            if self.itemNodes[i].preventsTouchesToOtherItems {
+                self.itemNodes[i].touchesToOtherItemsPrevented()
+            }
+        }
+    }
     
     override open func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         let touchesPosition = touches.first!.location(in: self.view)
